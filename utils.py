@@ -48,6 +48,9 @@ def predict_online(model_file, smpls, proba=None):
         return clf.predict_proba(smpls)[:,proba]
 
 
+def batches(l, n):
+        for i in range(0, len(l), n):
+            yield l[i:i + n]
 
 #######################    DATA PROCESSING   ###########################
 
