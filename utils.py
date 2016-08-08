@@ -26,12 +26,32 @@ from sklearn.svm import SVC, LinearSVC
 from sklearn.learning_curve import learning_curve, validation_curve
 from sklearn.cross_validation import cross_val_score, train_test_split
 from sklearn.grid_search import GridSearchCV, RandomizedSearchCV
+from sklearn.metrics import roc_auc_score
+from sklearn.externals import joblib
 
+
+
+#######################    MODEL PROCESSING   ###########################
+
+def train_online(model_file, smpls, clss, classes=[0, 1]):
+    clf = joblib.load(model_file)
+    clf.partial_fit(smpls, clss, classes=classes)
+    joblib.dump(clf, model_file)
+    return clf
+
+
+def predict_online(model_file, smpls, proba=None):
+    clf = joblib.load(model_file)
+    if proba == None:
+        return clf.predict(smpls)
+    else:
+        return clf.predict_proba(smpls)[:,proba]
+
+
+
+#######################    DATA PROCESSING   ###########################
 
 def decode_b(obj):
-    """
-    Decoder for deserializing numpy data types.
-    """
     try:
         if b'nd' in obj:
             if obj[b'nd'] is True:
@@ -45,7 +65,8 @@ def decode_b(obj):
     except KeyError:
         return obj
 
-def process_log (var):
+
+def decode_unpack(var):
     return msgpack.unpackb(base64.b64decode(var), object_hook=decode_b)
 
 #
@@ -55,6 +76,15 @@ def col_split (df,col,ind):
                                      columns=pd.MultiIndex.from_tuples([(col.decode(),i) for i in range(len(df[col][0]))],
                                                                        names=['key', 'ind']))
 
+def process_log_data (ser):
+    requestDecoded = pd.DataFrame.from_records(ser.apply(decode_unpack))
+    requestDecoded = pd.concat([col_split(requestDecoded, b'bid_request_body', b'requestID'),
+                                col_split(requestDecoded, b'weight_funnel_stage_0', b'requestID')], axis=1)
+    return requestDecoded
+
+
+
+###################   DATA VISUALIZATION   ###########################
 
 # Plot result in 2D by PCA
 def plot_2d(F, ttl='PCA of dataset'):
@@ -115,6 +145,7 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None, n_jobs=1, tr
     print(test_scores_mean)
     return plt
 
+
 def plot_validation_curve(estimator, X, y, param_name, param_range=np.logspace(-6, -1, 5), title=None, ylim=None, cv=None, n_jobs=1, scoring=None):
     plt.figure(figsize=(20,10))
     #param_range = np.logspace(-6, -1, 5)
@@ -146,3 +177,4 @@ def plot_validation_curve(estimator, X, y, param_name, param_range=np.logspace(-
     print("test_scores_mean:")
     print(test_scores_mean)
     return plt
+
