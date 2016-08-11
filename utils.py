@@ -95,6 +95,8 @@ def plot_2d(F, ttl='PCA of dataset'):
     plt.scatter(F[:, 0], F[:, 1])
     # plt.legend()
     plt.title(ttl)
+    plt.xlim(F[:, 0].min(), F[:, 0].max())
+    plt.ylim(F[:, 1].min(), F[:, 1].max())
     plt.show()
 
 
